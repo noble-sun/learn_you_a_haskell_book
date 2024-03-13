@@ -79,3 +79,63 @@ multWithLog = do
 -- runWriter multWithLog
 -- (15,["Got number: 3","Got number: 5","Gonna multiply these two"])
 
+gcd' :: Int -> Int -> Writer [String] Int
+gcd' a b
+    | b == 0 = do
+        tell ["Finished with " ++ show a]
+        return a
+    | otherwise = do
+        tell [show a ++ " mod " ++ show b ++ " = " ++ show (a `mod` b)]
+        gcd' b (a `mod` b)
+
+-- The same function as the above but for the log, it appends to the left of the 
+-- list, which is very inefficient for bit lists.
+gcdReverse :: Int -> Int -> Writer [String] Int
+gcdReverse a b
+    | b == 0 = do
+        tell ["Finished with " ++ show a]
+        return a
+    | otherwise = do
+        result <- gcdReverse b (a `mod` b)
+        tell [show a ++ " mod " ++ show b ++ " = " ++ show (a `mod` b)]
+        return result
+
+-- This is a wrapper for the difference list data structure. What is wrapping
+-- is a function that takes a list and return another list.
+newtype DiffList a = DiffList { getDiffList :: [a] -> [a] }
+
+-- This will convert a normal list to a difference list.
+toDiffList :: [a] -> DiffList a
+-- What it's doing is putting the list it is passing inside the wrapper with '++',
+-- so for example "dog" will be the partially applied function ("dog"++), which
+-- will result in another list when evaluated.
+toDiffList xs = DiffList (xs++)
+
+-- This function converts a DiffListt to a normal list
+fromDiffList :: DiffList a -> [a]
+-- It will prepend a empty list to get the final list. For example the DiffList ("dog"++),
+-- we apply ("dog"++) to the empty list, the partial function will then be completely
+-- avaluated and will return just "dog".
+fromDiffList (DiffList f) = f []
+
+-- Monoid instance for the newtype wrapper DiffList
+instance Monoid (DiffList a) where
+-- mempty is the identity, where is the minimal default value where the context
+-- is still valid, and the context being the DiffList. And the minimal context possible
+-- for a difference list is a function with a empty list.
+    mempty = DiffList (\xs -> [] ++ xs)
+-- mappend is the same as a function composition, evalute the 'g' function, and the
+-- result of that is applied to the 'f' function.
+    (DiffList f) `mappend` (DiffList g) = DiffList (\xs -> f (g xs))
+
+-- The same functions as the ones above, but uses the wrapper for difference lists
+gcd' :: Int -> Int -> Writer (DiffList String) Int
+gcd' a b
+    | b == 0 = do
+        tell (toDiffList ["Finished with " ++ show a])
+        return a
+    | otherwise = do
+        result <- gcd' b (a `mod` b)
+        tell (toDiffList [show a ++ " mod " ++ show b ++ " = " ++ show (a `mod` b)])
+        return result
+
