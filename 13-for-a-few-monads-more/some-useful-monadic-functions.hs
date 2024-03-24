@@ -103,3 +103,4 @@ binSmalls acc x
 -- foldM binSmalls 0 [2,11,3,1]
 -- Nothing
 
+-- Composing monadic functions is on knights-quest.hs

@@ -1,3 +1,4 @@
+import Control.Monad
 -- An alias for a tuple of Int
 type KnightPos = (Int, Int)
 
@@ -43,4 +44,23 @@ canReachIn3 :: KnightPos -> KnightPos -> Bool
 -- evaluates the function 'in3' taking the start position, and checks if the 'end'
 -- position is in the result of the list of possible positions after three moves.
 canReachIn3 start end = end `elem` in3 start
+
+
+
+
+-- The first parameter it takes is how many moves the knight will make, the second parameter
+-- is the initial position of the knight, and the result is a list of all the
+-- possible end positions after that number of moves.
+inMany :: Int -> KnightPos -> [KnightPos]
+-- 'replicate' the function 'moveKnight' 'x' number of times.
+-- '<=<' is the operator for composing monadic functions. So 'foldr' will do something like
+-- '[moveKnight, moveKnight, moveKnight]' and make it 'moveKnight <=< moveKnight <=< moveKnight'.
+-- That composition will then be applied to the 'start' position, to get all the possible
+-- positions after that many moves.
+inMany x start = return start >>= foldr (<=<) return (replicate x moveKnight)
+
+-- The same as 'canReachIn3', only it takes how many moves you want to make the 
+-- knight take.
+canReachIn :: Int -> KnightPos -> KnightPos -> Bool
+canReachIn x start end = end `elem` inMany x start
 
